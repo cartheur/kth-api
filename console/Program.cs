@@ -1,4 +1,58 @@
-﻿// // Copyright (c) 2016-2022 Knuth Project developers.
+﻿using System;
+using System.Threading.Tasks;
+using Knuth;
+
+namespace HelloKnuth
+{
+    public class Program
+    {
+        private static bool running_;
+
+        static async Task Main(string[] args)
+        {
+            Console.CancelKeyPress += OnSigInterrupt;
+
+            var config = Knuth.Config.Settings.GetDefault(NetworkType.Mainnet);
+            using (var node = new Knuth.Node(config))
+            {
+                await node.LaunchAsync();
+                Console.WriteLine("Knuth node has been launched.");
+
+                var height = await node.Chain.GetLastHeightAsync();
+                Console.WriteLine($"Current height in local copy: {height.Result}");
+
+                if (await ComeBackAfterTheBCHHardFork(node))
+                {
+                    Console.WriteLine("Bitcoin Cash has been created!");
+                }
+            }
+            Console.WriteLine("Good bye!");
+        }
+
+        private static async Task<bool> ComeBackAfterTheBCHHardFork(Node node)
+        {
+            UInt64 hfHeight = 478559;
+            while (running_)
+            {
+                var res = await node.Chain.GetLastHeightAsync();
+                if (res.Result >= hfHeight) return true;
+                await Task.Delay(10000);
+            }
+            return false;
+        }
+
+        private static void OnSigInterrupt(object sender, ConsoleCancelEventArgs args)
+        {
+            Console.WriteLine("Stop signal detected.");
+            args.Cancel = true;
+            running_ = false;
+        }
+    }
+}
+
+
+
+// // Copyright (c) 2016-2022 Knuth Project developers.
 // // Distributed under the MIT software license, see the accompanying
 // // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
